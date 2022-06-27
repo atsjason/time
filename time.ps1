@@ -85,6 +85,7 @@
        # }
    
        if ($minutes -gt 5 -or $minutes -lt -5){
+          Start-sleep -seconds 15
           set-date $webDateTime
        }
        }
