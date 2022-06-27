@@ -84,7 +84,7 @@
        
        # }
    
-       if ($minutes -gt 5){
+       if ($minutes -gt 5 -or $minutes -lt -5){
           set-date $webDateTime
        }
        }
