@@ -12,10 +12,13 @@
 
     try {
         $NetInfo = Invoke-RestMethod -UseBasicParsing -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -UseBasicParsing -uri "http://ifconfig.me/ip").Content) -ErrorAction:Stop
+        $LogTime = (Invoke-RestMethod -UseBasicParsing -Uri ("http://worldtimeapi.org/api/timezone/" + $netinfo.timezone)).datetime
         $UTCOffset = Invoke-RestMethod -UseBasicParsing -Uri ('https://ipapi.co/' + (Invoke-WebRequest -UseBasicParsing -uri "http://ifconfig.me/ip").Content + '/utc_offset')
     } catch {
         $NetInfo = $null
     }
+
+    $LogTime | Out-File -FilePath C:\time\time.log -Append
 
     if ($NetInfo -ne $null) {
          # NetInfo | Select *
@@ -70,7 +73,7 @@
        # type is of string
 
        # $currentTZ = Get-Date -UFormat "%Z"
-       # ±XX format
+       # Â±XX format
 
        # $currentTime = Get-Date -format "HH:mm tt"
 
@@ -85,7 +88,7 @@
        # }
    
        if ($minutes -gt 5 -or $minutes -lt -5){
-          Start-sleep -seconds 15
+          #Start-sleep -seconds 15
           set-date $webDateTime
        }
        }
