@@ -1,6 +1,11 @@
+### Time.ps1  
+    
+    # Get network availabilty if available
+    # Script will not set time if $connection != NULL | if elapsed time ($sw) > 5 minutes
     $connection = $null
     $timeout = new-timespan -Minutes 5
     $sw = [diagnostics.stopwatch]::StartNew()
+    
     while ($sw.elapsed -lt $timeout){
         $Connection = Get-NetRoute | ? DestinationPrefix -eq '0.0.0.0/0' | Get-NetIPInterface | Where ConnectionState -eq 'Connected'
         if ($connection -ne $null){
@@ -10,46 +15,49 @@
         start-sleep -seconds 5
     }
 
+    # $NetIfno: Gets the PC's Global IP Address to determine ISP Location
+    # LogTime: Secondary helper time-server; currently being used soley for logging puposes
     try {
         $NetInfo = Invoke-RestMethod -UseBasicParsing -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -UseBasicParsing -uri "http://ifconfig.me/ip").Content) -ErrorAction:Stop
         $LogTime = (Invoke-RestMethod -UseBasicParsing -Uri ("http://worldtimeapi.org/api/timezone/" + $netinfo.timezone)).datetime
-        $UTCOffset = Invoke-RestMethod -UseBasicParsing -Uri ('https://ipapi.co/' + (Invoke-WebRequest -UseBasicParsing -uri "http://ifconfig.me/ip").Content + '/utc_offset')
+        # $UTCOffset = Invoke-RestMethod -UseBasicParsing -Uri ('https://ipapi.co/' + (Invoke-WebRequest -UseBasicParsing -uri "http://ifconfig.me/ip").Content + '/utc_offset')
     } catch {
         $NetInfo = $null
     }
 
+    # Location of .log file
     $LogTime | Out-File -FilePath C:\time\time.log -Append
 
     if ($NetInfo -ne $null) {
-         # NetInfo | Select *
-        # ip
-        # hostname
-        # city
-        # region
-        # country
-        # loc
-        # postal
-        # timezone
-        # readme
+           # NetInfo | Select *
+           # ip
+           # hostname
+           # city
+           # region
+           # country
+           # loc
+           # postal
+           # timezone
+           # readme
 
+       # Store ZIP code from IP Address; will be used for Google Search + "time"
        $zip = $NetInfo.postal
-           #$region = $NetInfo.region
+       
+           # $region = $NetInfo.region
+           # $currentTZ = Get-Date -UFormat "%Z"
+           # $currentTZ = $currentTZ -as [int]
+           # $utcoffset = $utcoffset /100
 
-           #$currentTZ = Get-Date -UFormat "%Z"
-           #$currentTZ = $currentTZ -as [int]
-           #$utcoffset = $utcoffset /100
+           # if ( $region -ne "Arizona" -or $region -ne "Hawaii" ) {
+           #    if ( $currentTZ -ne $UTCOffset ){
+           #       $utcoffset = '{0:d2}' -f $utcoffset
+           #       get-timezone -listavailable | Where-Object {$_.BaseUtcOffset -like "*$utcoffset*" -and $_.SupportsDaylightSavingTime -Match "True"}
+              # }
+           # }
+           # else{}
 
-       #if ( $region -ne "Arizona" -or $region -ne "Hawaii" ) {
-       #    if ( $currentTZ -ne $UTCOffset ){
-       #        $utcoffset = '{0:d2}' -f $utcoffset
-       #        get-timezone -listavailable | Where-Object {$_.BaseUtcOffset -like "*$utcoffset*" -and $_.SupportsDaylightSavingTime -Match "True"}
-       #    }
-       #}
-       #else{
-
-       #}
-
-
+       # Google web-parse
+       # End-result: $Date & $Time variable
        $webRequest = (Invoke-WebRequest -UseBasicParsing -Uri "https://www.google.com/search?q=$zip+time").content
 
        $tempTime = ($webRequest.substring($webRequest.LastIndexOf('<div class="BNeawe iBp4i AP7Wnd">'), $webRequest.IndexOf('</div>'))).trim()
@@ -60,23 +68,25 @@
        $tempDate = $tempDate.substring(($tempDate.Indexof(">")+1))
        $date = ($tempDate.substring(0,($tempDate.Indexof("`n")+1))).trim()
 
-       # $tempST = $webRequest.substring($webRequest.IndexOf('GMT/UTC')+8)
-       # $tempDT = $tempST.substring($tempST.IndexOf('GMT/UTC')+8)
-       # $DTZ = ($tempDT.substring(0, ($tempDT.Indexof("during Daylight")-2))).trim()
-       # $STZ = ($tempST.substring(0, ($tempST.Indexof("during Standard")-2))).trim()
+           # $tempST = $webRequest.substring($webRequest.IndexOf('GMT/UTC')+8)
+           # $tempDT = $tempST.substring($tempST.IndexOf('GMT/UTC')+8)
+           # $DTZ = ($tempDT.substring(0, ($tempDT.Indexof("during Daylight")-2))).trim()
+           # $STZ = ($tempST.substring(0, ($tempST.Indexof("during Standard")-2))).trim()
 
-       # $date -match (get-date).DayOfWeek
-       # Type is of System.Date
+           # $date -match (get-date).DayOfWeek
+           # Type is of System.Date
 
-       #$currentdate = Get-Date -format "dddd, MMM d, yyyy"
-       # Friday, May 13, 2022
-       # type is of string
+           # $currentdate = Get-Date -format "dddd, MMM d, yyyy"
+           # Friday, May 13, 2022
+           # type is of string
 
-       # $currentTZ = Get-Date -UFormat "%Z"
-       # Â±XX format
+           # $currentTZ = Get-Date -UFormat "%Z"
+           # Â±XX format
 
-       # $currentTime = Get-Date -format "HH:mm tt"
+           # $currentTime = Get-Date -format "HH:mm tt"
 
+       # Set time from web to get-date type
+       # Get difference of devices current time, from web-time
        $concatDateTime = $date + " " + $time
        $webDateTime = get-date $concatDateTime
        $currentDateTime = Get-Date
@@ -87,6 +97,7 @@
        
        # }
    
+       # Set date if > 5 minutes
        if ($minutes -gt 5 -or $minutes -lt -5){
           #Start-sleep -seconds 15
           set-date $webDateTime
